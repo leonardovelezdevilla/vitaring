@@ -44,9 +44,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import pe.vitaring.app.data.Config
 import pe.vitaring.app.data.HealthRepository
 import pe.vitaring.app.data.NivelPulso
+import pe.vitaring.app.data.PerfilRepo
 import pe.vitaring.app.data.estadisticas
 import pe.vitaring.app.ui.IconoCirculo
 import pe.vitaring.app.ui.OndaPulso
@@ -77,6 +77,11 @@ fun PantallaInicio(navegar: (String) -> Unit) {
     val pasos by HealthRepository.pasos.collectAsStateWithLifecycle()
     val relojEnVivo by HealthRepository.relojEnVivo.collectAsStateWithLifecycle()
     val modoDemo by HealthRepository.modoDemo.collectAsStateWithLifecycle()
+    val perfil by PerfilRepo.perfil.collectAsStateWithLifecycle()
+    val nombre = perfil?.nombre?.trim()?.split(" ")?.firstOrNull().orEmpty()
+    val metaPasos = perfil?.actividad?.metaPasos ?: 8_000
+    val kcal = perfil?.kcal(pasos) ?: (pasos * 0.045).toInt()
+    val metaSueno = perfil?.metaSuenoHoras ?: 8
     val nivel = NivelPulso.para(bpm)
     val stats = estadisticas(lecturas)
 
@@ -91,13 +96,17 @@ fun PantallaInicio(navegar: (String) -> Unit) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(fechaHoy(), style = MaterialTheme.typography.labelMedium, color = TextoSuave)
-                Text("Hola, ${Config.NOMBRE_USUARIO}", style = MaterialTheme.typography.headlineMedium, color = MoradoTexto)
+                Text(if (nombre.isEmpty()) "Hola" else "Hola, $nombre", style = MaterialTheme.typography.headlineMedium, color = MoradoTexto)
             }
             Box(
-                modifier = Modifier.size(44.dp).clip(CircleShape).background(RosaBrillo),
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(RosaBrillo)
+                    .clickable { navegar(Rutas.PERFIL) },
                 contentAlignment = Alignment.Center,
             ) {
-                Text(Config.NOMBRE_USUARIO.take(1), fontFamily = Fredoka, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Morado)
+                Text(nombre.take(1).uppercase().ifEmpty { "?" }, fontFamily = Fredoka, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Morado)
             }
         }
 
@@ -165,15 +174,15 @@ fun PantallaInicio(navegar: (String) -> Unit) {
             { m ->
                 Metrica(
                     m, Icons.AutoMirrored.Rounded.DirectionsWalk, true, "Pasos", miles(pasos), null,
-                    "${(pasos * 100 / Config.META_PASOS).coerceAtMost(100)}% de ${miles(Config.META_PASOS)}", TextoSuave,
-                    progreso = pasos.toFloat() / Config.META_PASOS,
+                    "${(pasos * 100 / metaPasos).coerceAtMost(100)}% de ${miles(metaPasos)}", TextoSuave,
+                    progreso = pasos.toFloat() / metaPasos,
                 ) { navegar(Rutas.ACTIVIDAD) }
             },
-            { m -> Metrica(m, Icons.Rounded.Bedtime, false, "Sueño", "7 h 24", "m", "● Buen descanso", verde) { navegar(Rutas.BIENESTAR) } },
+            { m -> Metrica(m, Icons.Rounded.Bedtime, false, "Sueño", "7 h 24", "m", "● Meta $metaSueno h", verde) { navegar(Rutas.BIENESTAR) } },
         )
         FilaMetricas(
             { m -> Metrica(m, Icons.Rounded.Thermostat, true, "Temperatura", HealthRepository.TEMPERATURA_DEMO, "°C", "● Normal", verde) { navegar(Rutas.BIENESTAR) } },
-            { m -> Metrica(m, Icons.Rounded.LocalFireDepartment, false, "Calorías", "${(pasos * 0.045).toInt()}", "kcal", "activas hoy", TextoSuave) { navegar(Rutas.ACTIVIDAD) } },
+            { m -> Metrica(m, Icons.Rounded.LocalFireDepartment, false, "Calorías", "$kcal", "kcal", "activas hoy", TextoSuave) { navegar(Rutas.ACTIVIDAD) } },
         )
     }
 }

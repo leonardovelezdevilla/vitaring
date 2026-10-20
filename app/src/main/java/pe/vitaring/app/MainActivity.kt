@@ -15,7 +15,9 @@ import com.google.android.gms.wearable.MessageClient
 import com.google.android.gms.wearable.Wearable
 import pe.vitaring.app.data.Config
 import pe.vitaring.app.data.HealthRepository
+import pe.vitaring.app.data.PerfilRepo
 import pe.vitaring.app.data.Podometro
+import pe.vitaring.app.data.Recordatorio
 import pe.vitaring.app.ui.VitaRingApp
 import pe.vitaring.app.ui.theme.VitaRingTheme
 
@@ -42,9 +44,14 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
         )
         podometro = Podometro(this)
+        Recordatorio.crearCanal(this)
+
+        // Si ya se registró, la app abre directo en Inicio.
+        PerfilRepo.cargar(this)
+        val tienePerfil = PerfilRepo.perfil.value != null
 
         setContent {
-            VitaRingTheme { VitaRingApp() }
+            VitaRingTheme { VitaRingApp(tienePerfil) }
         }
 
         val necesitaPermiso = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
