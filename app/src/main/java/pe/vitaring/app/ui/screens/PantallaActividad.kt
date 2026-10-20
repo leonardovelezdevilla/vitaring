@@ -1,10 +1,15 @@
 package pe.vitaring.app.ui.screens
 
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,12 +23,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.DirectionsRun
+import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -37,12 +46,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
-import pe.vitaring.app.data.Config
 import pe.vitaring.app.data.HealthRepository
+import pe.vitaring.app.data.PerfilRepo
+import pe.vitaring.app.data.Recordatorio
 import pe.vitaring.app.ui.IconoCirculo
 import pe.vitaring.app.ui.Pildora
 import pe.vitaring.app.ui.ProgresoCircular
@@ -80,8 +91,10 @@ fun PantallaActividad() {
         }
     }
 
-    val km = pasos * 0.00072
-    val kcal = (pasos * 0.045).toInt()
+    val perfil by PerfilRepo.perfil.collectAsStateWithLifecycle()
+    val metaPasos = perfil?.actividad?.metaPasos ?: 8_000
+    val km = perfil?.km(pasos)?.toDouble() ?: (pasos * 0.00072)
+    val kcal = perfil?.kcal(pasos) ?: (pasos * 0.045).toInt()
     val minutosActivos = pasos / 150
 
     Column(
@@ -99,7 +112,7 @@ fun PantallaActividad() {
         Tarjeta(relleno = 18.dp) {
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 ProgresoCircular(
-                    progreso = pasos.toFloat() / Config.META_PASOS,
+                    progreso = pasos.toFloat() / metaPasos,
                     color = RosaAcento,
                     pista = Color(0xFFF2EAFB),
                     grosor = 18.dp,
@@ -107,7 +120,7 @@ fun PantallaActividad() {
                 )
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(miles(pasos), style = estiloNumero(40, Morado))
-                    Text("de ${miles(Config.META_PASOS)} pasos", style = MaterialTheme.typography.labelMedium, color = TextoSuave)
+                    Text("de ${miles(metaPasos)} pasos", style = MaterialTheme.typography.labelMedium, color = TextoSuave)
                 }
             }
             val fuente = when {
@@ -137,7 +150,7 @@ fun PantallaActividad() {
                 verticalAlignment = Alignment.Bottom,
             ) {
                 valores.forEachIndexed { i, v ->
-                    val fraccion = (v.toFloat() / 11_000f).coerceIn(0.08f, 1f)
+                    val fraccion = (v.toFloat() / maxOf(11_000f, metaPasos * 1.1f)).coerceIn(0.08f, 1f)
                     Box(
                         Modifier
                             .weight(1f)
@@ -207,6 +220,8 @@ fun PantallaActividad() {
             Spacer(Modifier.width(8.dp))
             Text(if (entrenando) "Terminar entrenamiento" else "Iniciar entrenamiento", style = MaterialTheme.typography.labelLarge)
         }
+
+        TarjetaRecordatorio(perfil?.actividad?.horasRecordatorio ?: 2, perfil?.actividad?.titulo)
     }
 }
 
@@ -215,5 +230,76 @@ private fun Dato(valor: String, unidad: String, modifier: Modifier) {
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(valor, style = estiloNumero(22))
         Text(unidad, style = MaterialTheme.typography.labelMedium, color = TextoSuave)
+    }
+}
+
+/** Recordatorio de movimiento: activar/cancelar y probar la notificación en la demo. */
+@Composable
+private fun TarjetaRecordatorio(horas: Int, actividad: String?) {
+    val context = LocalContext.current
+    var activo by remember { mutableStateOf(Recordatorio.estaActivo(context)) }
+    var probarTrasPermiso by remember { mutableStateOf(false) }
+
+    val pedirPermiso = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { concedido ->
+        if (concedido && probarTrasPermiso) Recordatorio.mostrar(context)
+        probarTrasPermiso = false
+    }
+    val asegurarPermiso: () -> Boolean = {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && Recordatorio.necesitaPermiso(context)) {
+            pedirPermiso.launch(Manifest.permission.POST_NOTIFICATIONS)
+            false
+        } else {
+            true
+        }
+    }
+
+    Tarjeta(relleno = 14.dp) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconoCirculo(Icons.Rounded.NotificationsActive, LilaSuave, Morado, 44.dp)
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text("Recordatorio de movimiento", style = MaterialTheme.typography.titleMedium, color = MoradoTexto)
+                Text(
+                    if (activo) "Cada $horas h te avisaremos que te muevas" else "Desactivado",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = TextoSuave,
+                )
+            }
+            Switch(
+                checked = activo,
+                onCheckedChange = { encender ->
+                    if (encender) {
+                        asegurarPermiso()
+                        Recordatorio.programar(context, horas)
+                    } else {
+                        Recordatorio.cancelar(context)
+                    }
+                    activo = encender
+                },
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Blanco,
+                    checkedTrackColor = Morado,
+                    uncheckedThumbColor = Lila,
+                    uncheckedTrackColor = LilaSuave,
+                    uncheckedBorderColor = Lila,
+                ),
+            )
+        }
+        if (actividad != null) {
+            Pildora("Intervalo según tu actividad: $actividad", RosaSuave, RosaTinta)
+        }
+        OutlinedButton(
+            onClick = {
+                probarTrasPermiso = true
+                if (asegurarPermiso()) {
+                    probarTrasPermiso = false
+                    Recordatorio.mostrar(context)
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            border = BorderStroke(2.dp, Lila),
+        ) {
+            Text("Probar ahora", style = MaterialTheme.typography.labelLarge, color = Morado)
+        }
     }
 }

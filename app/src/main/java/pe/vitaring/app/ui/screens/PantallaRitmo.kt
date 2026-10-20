@@ -27,6 +27,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -40,11 +41,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import pe.vitaring.app.data.HealthRepository
 import pe.vitaring.app.data.NivelPulso
+import pe.vitaring.app.data.PerfilRepo
 import pe.vitaring.app.data.estadisticas
 import pe.vitaring.app.ui.Encabezado
 import pe.vitaring.app.ui.Rutas
@@ -64,6 +67,7 @@ fun PantallaRitmo(navegar: (String) -> Unit) {
     val bpm by HealthRepository.bpm.collectAsStateWithLifecycle()
     val lecturas by HealthRepository.lecturas.collectAsStateWithLifecycle()
     val relojEnVivo by HealthRepository.relojEnVivo.collectAsStateWithLifecycle()
+    val perfil by PerfilRepo.perfil.collectAsStateWithLifecycle()
     val nivel = NivelPulso.para(bpm)
     val stats = estadisticas(lecturas)
     var periodo by remember { mutableIntStateOf(0) }
@@ -142,6 +146,35 @@ fun PantallaRitmo(navegar: (String) -> Unit) {
                     Text(titulo, style = MaterialTheme.typography.labelMedium, color = TextoSuave, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
                     Text(valor, style = estiloNumero(19), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
                 }
+            }
+        }
+
+        // Pulso máximo según la edad (220 − edad)
+        perfil?.let { p ->
+            val maximo = p.pulsoMaximo
+            val porcentaje = (bpm * 100 / maximo).coerceIn(0, 100)
+            Tarjeta(fondo = LilaSuave, conBorde = false) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Tu pulso máximo", style = MaterialTheme.typography.titleMedium, color = MoradoTexto)
+                        Text("220 − ${p.edad} años", style = MaterialTheme.typography.labelMedium, color = TextoSuave)
+                    }
+                    Text("$maximo lpm", style = estiloNumero(24, Morado))
+                }
+                LinearProgressIndicator(
+                    progress = { porcentaje / 100f },
+                    modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                    color = nivel.colorLuz,
+                    trackColor = Blanco,
+                    strokeCap = StrokeCap.Round,
+                    gapSize = 0.dp,
+                    drawStopIndicator = {},
+                )
+                Text(
+                    "Ahora estás al $porcentaje% de tu máximo",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Morado,
+                )
             }
         }
 

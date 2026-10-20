@@ -29,6 +29,7 @@ import pe.vitaring.app.ui.screens.PantallaAnillo
 import pe.vitaring.app.ui.screens.PantallaBienestar
 import pe.vitaring.app.ui.screens.PantallaBienvenida
 import pe.vitaring.app.ui.screens.PantallaInicio
+import pe.vitaring.app.ui.screens.PantallaPerfil
 import pe.vitaring.app.ui.screens.PantallaResultado
 import pe.vitaring.app.ui.screens.PantallaRitmo
 import pe.vitaring.app.ui.theme.Blanco
@@ -40,6 +41,7 @@ import pe.vitaring.app.ui.theme.Morado
 
 object Rutas {
     const val BIENVENIDA = "bienvenida"
+    const val PERFIL = "perfil"
     const val INICIO = "inicio"
     const val RITMO = "ritmo"
     const val ACTIVIDAD = "actividad"
@@ -59,7 +61,7 @@ private val pestanas = listOf(
 )
 
 @Composable
-fun VitaRingApp() {
+fun VitaRingApp(tienePerfil: Boolean) {
     val nav = rememberNavController()
     val entrada by nav.currentBackStackEntryAsState()
     val rutaActual = entrada?.destination?.route
@@ -107,18 +109,29 @@ fun VitaRingApp() {
     ) { relleno ->
         NavHost(
             navController = nav,
-            startDestination = Rutas.BIENVENIDA,
+            startDestination = if (tienePerfil) Rutas.INICIO else Rutas.BIENVENIDA,
             modifier = Modifier.padding(relleno),
         ) {
             composable(Rutas.BIENVENIDA) {
                 PantallaBienvenida(
-                    onComenzar = {
-                        nav.navigate(Rutas.INICIO) { popUpTo(Rutas.BIENVENIDA) { inclusive = true } }
-                    },
+                    onComenzar = { nav.navigate(Rutas.PERFIL) },
                     onVincular = {
                         nav.navigate(Rutas.INICIO) { popUpTo(Rutas.BIENVENIDA) { inclusive = true } }
                         navegar(Rutas.ANILLO)
                     },
+                )
+            }
+            composable(Rutas.PERFIL) {
+                // Primera vez: viene de Bienvenida (Inicio no está en la pila).
+                // Edición: viene de Inicio y vuelve ahí al guardar.
+                val editando = nav.previousBackStackEntry?.destination?.route != Rutas.BIENVENIDA
+                PantallaPerfil(
+                    onListo = {
+                        if (!nav.popBackStack(Rutas.INICIO, inclusive = false)) {
+                            nav.navigate(Rutas.INICIO) { popUpTo(nav.graph.id) { inclusive = true } }
+                        }
+                    },
+                    onVolver = if (editando) volver else null,
                 )
             }
             composable(Rutas.INICIO) { PantallaInicio(navegar) }
