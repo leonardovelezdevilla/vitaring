@@ -1,0 +1,48 @@
+name: Compilar APKs
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  compilar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Compilar app del celular y del reloj
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug :wear:assembleDebug --stacktrace
+
+      - name: Renombrar APKs
+        run: |
+          mkdir salida
+          cp app/build/outputs/apk/debug/app-debug.apk salida/VitaRing-celular.apk
+          cp wear/build/outputs/apk/debug/wear-debug.apk salida/VitaRing-reloj.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VitaRing-APKs
+          path: salida/*.apk
+
+      - name: Publicar versión descargable
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: VitaRing v1.0.${{ github.run_number }}
+          body: |
+            Instala **VitaRing-celular.apk** en tu Android y **VitaRing-reloj.apk** en tu Galaxy Watch.
+            Ambos archivos deben ser de la misma versión para que se comuniquen.
+          files: salida/*.apk
