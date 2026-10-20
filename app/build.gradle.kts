@@ -50,6 +50,9 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
 
+    // Recordatorios de movimiento (funcionan con la app cerrada)
+    implementation("androidx.work:work-runtime-ktx:2.10.0")
+
     // Comunicación con el reloj Wear OS
     implementation("com.google.android.gms:play-services-wearable:19.0.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")

@@ -4,6 +4,9 @@
     <!-- Podómetro del celular (Android 10 o más nuevo pide este permiso) -->
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
 
+    <!-- Recordatorio de movimiento (Android 13 o más nuevo pide este permiso) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <uses-feature
         android:name="android.hardware.sensor.stepcounter"
         android:required="false" />
