@@ -1,0 +1,25 @@
+# Prueba en emulador: 22/23 OK
+
+- ✅ Bienvenida se muestra la primera vez
+- ✅ Pantalla de perfil abre tras 'Comenzar'
+- ✅ Valida actividad vacía
+- ✅ Valida nombre vacío
+- ✅ Valida edad
+- ✅ Inicio saluda con el nombre
+- ✅ Meta de pasos según actividad (6 000)
+- ✅ Meta de sueño en Inicio
+- ✅ Recordatorio programado al guardar
+- ✅ Pulso máximo 220 − edad = 200
+- ✅ Fórmula visible
+- ✅ Meta de pasos en Actividad
+- ✅ Tarjeta de recordatorio
+- ❌ Intervalo según actividad (1 h)
+- ✅ 'Probar ahora' muestra la notificación
+- ✅ Switch desactiva el recordatorio
+- ✅ Switch vuelve a activarlo
+- ✅ Gráfico de sueño semanal
+- ✅ Meta de sueño marcada
+- ✅ Avatar abre 'Mi perfil'
+- ✅ Nombre editado en Inicio
+- ✅ Con perfil abre directo en Inicio
+- ✅ Sin cierres inesperados (crash)
